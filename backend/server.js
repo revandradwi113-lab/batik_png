@@ -31,8 +31,21 @@ app.get("/", (req, res) => {
   res.send("API jalan");
 });
 
+// ... kode di atas biarkan sama ...
+
+// Endpoint cek server hidup
+app.get("/", (req, res) => {
+  res.send("API jalan");
+});
+
 // Jalankan server sesuai PORT di .env
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server jalan di port ${PORT}`);
-});
+
+// Support Vercel (serverless)
+if (process.env.VERCEL) {
+  module.exports = app;
+} else {
+  app.listen(PORT, () => {
+    console.log(`Server jalan di port ${PORT}`);
+  });
+}
