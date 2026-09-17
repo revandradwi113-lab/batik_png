@@ -1,7 +1,9 @@
 // Middleware autentikasi, otorisasi role, dan upload gambar
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
-const path = require("path");
+const supabase = require("../config/db");
+
+const BUCKET_NAME = "produk-images";
 
 // Cek token JWT dari header Authorization: Bearer <token>
 function authenticate(req, res, next) {
@@ -33,21 +35,14 @@ function requireRole(...roles) {
   };
 }
 
-// Konfigurasi penyimpanan file gambar (produk/artikel) ke uploads/images
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "..", "uploads", "images"));
-  },
-  filename: (req, file, cb) => {
-    const unik = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
-    cb(null, unik);
-  },
-});
+// Simpan file di memory (buffer) dulu, BUKAN di disk lokal.
+// Vercel serverless function filesystem-nya read-only, jadi diskStorage tidak bisa dipakai.
+const storage = multer.memoryStorage();
 
 // Hanya terima file gambar
 function fileFilter(req, file, cb) {
-  const validExt = /jpeg|jpg|png|webp/;
-  const isValid = validExt.test(path.extname(file.originalname).toLowerCase());
+  const validMime = /image\/(jpeg|jpg|png|webp)/;
+  const isValid = validMime.test(file.mimetype);
   if (isValid) return cb(null, true);
   cb(new Error("File harus berupa gambar (jpg, jpeg, png, webp)"));
 }
@@ -59,15 +54,40 @@ const middlewareUploadGambar = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 }).single("gambar");
 
-// Kirim response JSON berisi path gambar yang sudah diupload
-function sendHasilUpload(req, res) {
-  if (!req.file) {
-    return res.status(400).json({ message: "Gambar tidak ditemukan" });
+// Upload buffer ke Supabase Storage, lalu kirim response berisi public URL
+async function sendHasilUpload(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Gambar tidak ditemukan" });
+    }
+
+    const ext = req.file.originalname.split(".").pop();
+    const namaUnik = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(namaUnik, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("[upload-gambar]", uploadError.message);
+      return res.status(500).json({ message: "Gagal upload gambar", error: uploadError.message });
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(namaUnik);
+
+    res.status(200).json({
+      message: "Upload berhasil",
+      path: publicUrlData.publicUrl,
+    });
+  } catch (err) {
+    console.error("[upload-gambar]", err.message);
+    res.status(500).json({ message: "Gagal upload gambar", error: err.message });
   }
-  res.status(200).json({
-    message: "Upload berhasil",
-    path: `/uploads/images/${req.file.filename}`,
-  });
 }
 
 module.exports = { authenticate, requireRole, middlewareUploadGambar, sendHasilUpload };
