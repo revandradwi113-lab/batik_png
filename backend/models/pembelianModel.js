@@ -1,16 +1,10 @@
 // Model untuk tabel pembelian (Supabase)
 const supabase = require("../config/db");
 
-// PENTING: kolom "status" di tabel pembelian bertipe ENUM (status_pembelian_enum),
-// bukan text/varchar. Operator ILIKE (.ilike()) TIDAK bisa dipakai ke kolom enum,
-// makanya sebelumnya muncul error "operator does not exist: status_pembelian_enum ~~* unknown".
-// Solusinya: pakai .eq() dengan value yang PERSIS SAMA (termasuk huruf besar/kecil)
-// dengan salah satu value yang ada di enum tersebut.
-//
-// Cek value enum yang valid lewat Supabase SQL editor:
-//   SELECT enum_range(NULL::status_pembelian_enum);
-// Lalu sesuaikan konstanta di bawah ini persis sama case-nya.
-const STATUS_SELESAI = "selesai"; // <-- GANTI sesuai value asli di enum kalau berbeda
+// Kolom "status" di tabel pembelian sudah diubah jadi TEXT (sebelumnya ENUM),
+// dengan CHECK constraint: status IN ('Tertunda', 'Dikemas', 'Dikirim', 'Diterima', 'Selesai')
+// Value harus PERSIS SAMA (case-sensitive) saat dibandingkan pakai .eq()
+const STATUS_SELESAI = "Selesai";
 
 // Ambil semua pembelian + detail pembeli & produk (untuk admin)
 async function findAllPembelianWithDetail() {
@@ -322,7 +316,7 @@ async function getLaporanSummary(fromDate, toDate) {
   const produkMap = {};
 
   data.forEach((row) => {
-    // row.status adalah value enum asli (case-sensitive), dipakai apa adanya untuk perbandingan exact
+    // row.status adalah value asli (case-sensitive), dipakai apa adanya untuk perbandingan exact
     const status = row.status || "";
     const pembayaran = (row.pembayaran || "").toLowerCase().trim();
     const harga = row.produk?.harga || 0;
