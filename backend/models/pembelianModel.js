@@ -1,6 +1,17 @@
 // Model untuk tabel pembelian (Supabase)
 const supabase = require("../config/db");
 
+// PENTING: kolom "status" di tabel pembelian bertipe ENUM (status_pembelian_enum),
+// bukan text/varchar. Operator ILIKE (.ilike()) TIDAK bisa dipakai ke kolom enum,
+// makanya sebelumnya muncul error "operator does not exist: status_pembelian_enum ~~* unknown".
+// Solusinya: pakai .eq() dengan value yang PERSIS SAMA (termasuk huruf besar/kecil)
+// dengan salah satu value yang ada di enum tersebut.
+//
+// Cek value enum yang valid lewat Supabase SQL editor:
+//   SELECT enum_range(NULL::status_pembelian_enum);
+// Lalu sesuaikan konstanta di bawah ini persis sama case-nya.
+const STATUS_SELESAI = "selesai"; // <-- GANTI sesuai value asli di enum kalau berbeda
+
 // Ambil semua pembelian + detail pembeli & produk (untuk admin)
 async function findAllPembelianWithDetail() {
   const { data, error } = await supabase
@@ -208,7 +219,7 @@ async function countTerjualBelumBayar() {
   const { count, error } = await supabase
     .from("pembelian")
     .select("*", { count: "exact", head: true })
-    .ilike("status", "selesai")
+    .eq("status", STATUS_SELESAI)
     .or("pembayaran.ilike.%belum bayar%,pembayaran.ilike.%belum%");
 
   if (error) throw error;
@@ -230,7 +241,7 @@ async function countProdukTerjual() {
   const { data, error } = await supabase
     .from("pembelian")
     .select("jumlah")
-    .ilike("status", "selesai");
+    .eq("status", STATUS_SELESAI);
 
   if (error) throw error;
   return data.reduce((sum, row) => sum + (row.jumlah || 1), 0);
@@ -241,7 +252,7 @@ async function countPesananAktif() {
   const { count, error } = await supabase
     .from("pembelian")
     .select("*", { count: "exact", head: true })
-    .not("status", "ilike", "selesai");
+    .not("status", "eq", STATUS_SELESAI);
 
   if (error) throw error;
   return count || 0;
@@ -255,7 +266,7 @@ async function sumPendapatanDibayar() {
       jumlah,
       produk:id_produk ( harga )
     `)
-    .ilike("status", "selesai");
+    .eq("status", STATUS_SELESAI);
 
   if (error) throw error;
 
@@ -311,7 +322,8 @@ async function getLaporanSummary(fromDate, toDate) {
   const produkMap = {};
 
   data.forEach((row) => {
-    const status = (row.status || "").toLowerCase().trim();
+    // row.status adalah value enum asli (case-sensitive), dipakai apa adanya untuk perbandingan exact
+    const status = row.status || "";
     const pembayaran = (row.pembayaran || "").toLowerCase().trim();
     const harga = row.produk?.harga || 0;
     const qty = row.jumlah || 1;
@@ -319,7 +331,7 @@ async function getLaporanSummary(fromDate, toDate) {
 
     byStatus[status] = (byStatus[status] || 0) + 1;
 
-    if (status === "selesai") {
+    if (status === STATUS_SELESAI) {
       total_pendapatan += subtotal;
     }
 
