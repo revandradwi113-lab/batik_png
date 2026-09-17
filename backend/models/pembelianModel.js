@@ -1,43 +1,65 @@
-// Model untuk tabel pembelian
-const db = require("../config/db");
+// Model untuk tabel pembelian (Supabase)
+const supabase = require("../config/db");
 
 // Ambil semua pembelian + detail pembeli & produk (untuk admin)
-function findAllPembelianWithDetail() {
-  return db.query(
-    `SELECT pb.*,
-            CONCAT(u.nama_d, ' ', u.nama_b) AS nama_pembeli,
-            u.email AS email_pembeli,
-            u.uname AS uname_pembeli,
-            pr.nama_produk,
-            pr.harga,
-            pr.gambar AS gambar_produk
-     FROM pembelian pb
-     JOIN users u ON u.id = pb.id_pembeli
-     JOIN produk pr ON pr.id_produk = pb.id_produk
-     ORDER BY pb.created_at DESC`
-  ).then(([rows]) => rows);
+async function findAllPembelianWithDetail() {
+  const { data, error } = await supabase
+    .from("pembelian")
+    .select(`
+      *,
+      users:id_pembeli ( nama_d, nama_b, email, uname ),
+      produk:id_produk ( nama_produk, harga, gambar )
+    `)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  // Rapikan hasil biar mirip query lama
+  return data.map((row) => ({
+    ...row,
+    nama_pembeli: row.users ? `${row.users.nama_d} ${row.users.nama_b}` : null,
+    email_pembeli: row.users?.email || null,
+    uname_pembeli: row.users?.uname || null,
+    nama_produk: row.produk?.nama_produk || null,
+    harga: row.produk?.harga || null,
+    gambar_produk: row.produk?.gambar || null,
+    users: undefined,
+    produk: undefined,
+  }));
 }
 
 // Ambil satu pembelian berdasarkan ID
-function findPembelianById(id) {
-  return db.query(
-    `SELECT pb.*,
-            CONCAT(u.nama_d, ' ', u.nama_b) AS nama_pembeli,
-            u.email AS email_pembeli,
-            u.uname AS uname_pembeli,
-            pr.nama_produk,
-            pr.harga,
-            pr.gambar AS gambar_produk
-     FROM pembelian pb
-     JOIN users u ON u.id = pb.id_pembeli
-     JOIN produk pr ON pr.id_produk = pb.id_produk
-     WHERE pb.id = ?`,
-    [id]
-  ).then(([rows]) => rows[0]);
+async function findPembelianById(id) {
+  const { data, error } = await supabase
+    .from("pembelian")
+    .select(`
+      *,
+      users:id_pembeli ( nama_d, nama_b, email, uname ),
+      produk:id_produk ( nama_produk, harga, gambar )
+    `)
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
+  }
+
+  return {
+    ...data,
+    nama_pembeli: data.users ? `${data.users.nama_d} ${data.users.nama_b}` : null,
+    email_pembeli: data.users?.email || null,
+    uname_pembeli: data.users?.uname || null,
+    nama_produk: data.produk?.nama_produk || null,
+    harga: data.produk?.harga || null,
+    gambar_produk: data.produk?.gambar || null,
+    users: undefined,
+    produk: undefined,
+  };
 }
 
-// Tambah pembelian baru (jumlah = qty produk dalam 1 baris pesanan)
-function insertPembelian(data) {
+// Tambah pembelian baru
+async function insertPembelian(data) {
   const {
     id_pembeli,
     id_produk,
@@ -52,335 +74,347 @@ function insertPembelian(data) {
 
   const qty = Math.max(1, parseInt(jumlah, 10) || 1);
 
-  return db.query(
-    `INSERT INTO pembelian
-      (
-        id_pembeli,
-        id_produk,
-        jumlah,
-        nama_pembeli,
-        alamat_pembeli,
-        phone_pembeli,
-        metode_pembayaran,
-        pengiriman,
-        catatan
-      )
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
+  const { data: result, error } = await supabase
+    .from("pembelian")
+    .insert([{
       id_pembeli,
       id_produk,
-      qty,
+      jumlah: qty,
       nama_pembeli,
       alamat_pembeli,
       phone_pembeli,
       metode_pembayaran,
       pengiriman,
       catatan,
-    ]
-  ).then(([result]) => result.insertId);
+    }])
+    .select("id")
+    .single();
+
+  if (error) throw error;
+  return result.id;
 }
 
 // Update pembelian
-function updatePembelian(id, data) {
-  const {
-    pembayaran,
-    status,
-    catatan,
-    foto_bukti,
-  } = data;
+async function updatePembelian(id, data) {
+  const { pembayaran, status, catatan, foto_bukti } = data;
 
-  return db.query(
-    `UPDATE pembelian
-     SET pembayaran = ?,
-         status = ?,
-         catatan = ?,
-         foto_bukti = ?
-     WHERE id = ?`,
-    [
-      pembayaran,
-      status,
-      catatan,
-      foto_bukti,
-      id,
-    ]
-  ).then(([result]) => result.affectedRows);
+  const { data: result, error } = await supabase
+    .from("pembelian")
+    .update({ pembayaran, status, catatan, foto_bukti })
+    .eq("id", id)
+    .select();
+
+  if (error) throw error;
+  return result.length > 0 ? 1 : 0;
 }
 
 // Hapus pembelian
-function deletePembelian(id) {
-  return db
-    .query(
-      "DELETE FROM pembelian WHERE id = ?",
-      [id]
-    )
-    .then(([result]) => result.affectedRows);
+async function deletePembelian(id) {
+  const { data, error } = await supabase
+    .from("pembelian")
+    .delete()
+    .eq("id", id)
+    .select();
+
+  if (error) throw error;
+  return data.length > 0 ? 1 : 0;
 }
 
 // Riwayat pembelian milik pembeli
-function findPembelianByPembeliIdWithDetail(idPembeli) {
-  return db.query(
-    `SELECT pb.*,
-            pr.nama_produk,
-            pr.harga,
-            pr.gambar
-     FROM pembelian pb
-     JOIN produk pr ON pr.id_produk = pb.id_produk
-     WHERE pb.id_pembeli = ?
-     ORDER BY pb.created_at DESC`,
-    [idPembeli]
-  ).then(([rows]) => rows);
-}
+async function findPembelianByPembeliIdWithDetail(idPembeli) {
+  const { data, error } = await supabase
+    .from("pembelian")
+    .select(`
+      *,
+      produk:id_produk ( nama_produk, harga, gambar )
+    `)
+    .eq("id_pembeli", idPembeli)
+    .order("created_at", { ascending: false });
 
-// Ambil pembelian berdasarkan ID dan ID pembeli
-function findPembelianByIdAndPembeliId(id, idPembeli) {
-  return db.query(
-    `SELECT pb.*,
-            pr.nama_produk,
-            pr.harga,
-            pr.gambar
-     FROM pembelian pb
-     JOIN produk pr ON pr.id_produk = pb.id_produk
-     WHERE pb.id = ?
-       AND pb.id_pembeli = ?`,
-    [id, idPembeli]
-  ).then(([rows]) => rows[0]);
-}
+  if (error) throw error;
 
-// Statistik pembelian milik satu pembeli
-function getStatsByPembeliId(idPembeli) {
-  return db.query(
-    `SELECT status,
-            COUNT(*) AS total
-     FROM pembelian
-     WHERE id_pembeli = ?
-     GROUP BY status`,
-    [idPembeli]
-  ).then(([rows]) => rows);
-}
-
-// Statistik pembelian keseluruhan
-function getAdminStats() {
-  return db.query(
-    `SELECT status,
-            COUNT(*) AS total
-     FROM pembelian
-     GROUP BY status`
-  ).then(([rows]) => rows);
-}
-
-// Pesanan selesai tetapi belum dibayar
-function countTerjualBelumBayar() {
-  return db.query(
-    `SELECT COUNT(*) AS total
-     FROM pembelian
-     WHERE LOWER(TRIM(status)) = 'selesai'
-       AND LOWER(TRIM(pembayaran)) IN ('belum bayar', 'belum')`
-  ).then(([rows]) => Number(rows[0].total || 0));
-}
-
-// Total semua transaksi
-function countTransaksi() {
-  return db
-    .query(
-      "SELECT COUNT(*) AS total FROM pembelian"
-    )
-    .then(([rows]) => Number(rows[0].total || 0));
-}
-
-// Total produk terjual
-function countProdukTerjual() {
-  return db
-    .query(
-      `SELECT COALESCE(SUM(COALESCE(jumlah, 1)), 0) AS total
-       FROM pembelian
-       WHERE LOWER(TRIM(status)) = 'selesai'`
-    )
-    .then(([rows]) => Number(rows[0].total || 0));
-}
-
-// Pesanan yang masih aktif
-function countPesananAktif() {
-  return db
-    .query(
-      `SELECT COUNT(*) AS total
-       FROM pembelian
-       WHERE LOWER(TRIM(status)) <> 'selesai'`
-    )
-    .then(([rows]) => Number(rows[0].total || 0));
-}
-
-// ======================================================
-// TOTAL PENDAPATAN
-// Pendapatan dihitung dari semua pesanan yang statusnya
-// SUDAH SELESAI.
-// ======================================================
-function sumPendapatanDibayar() {
-  return db
-    .query(
-      `SELECT COALESCE(SUM(pr.harga * COALESCE(pb.jumlah, 1)), 0) AS total
-       FROM pembelian pb
-       JOIN produk pr ON pr.id_produk = pb.id_produk
-       WHERE LOWER(TRIM(pb.status)) = 'selesai'`
-    )
-    .then(([rows]) => Number(rows[0].total || 0));
-}
-
-// Pembelian terbaru
-function getRecentPembelian(limit = 5) {
-  return db.query(
-    `SELECT pb.*,
-            CONCAT(u.nama_d, ' ', u.nama_b) AS nama_pembeli,
-            pr.nama_produk
-     FROM pembelian pb
-     JOIN users u ON u.id = pb.id_pembeli
-     JOIN produk pr ON pr.id_produk = pb.id_produk
-     ORDER BY pb.created_at DESC
-     LIMIT ?`,
-    [limit]
-  ).then(([rows]) => rows);
-}
-
-// Laporan admin: filter opsional by tanggal (YYYY-MM-DD)
-function getLaporanSummary(fromDate, toDate) {
-  const params = [];
-  let where = "1=1";
-  if (fromDate) {
-    where += " AND DATE(pb.created_at) >= ?";
-    params.push(fromDate);
-  }
-  if (toDate) {
-    where += " AND DATE(pb.created_at) <= ?";
-    params.push(toDate);
-  }
-
-  return Promise.all([
-    // total transaksi + pendapatan (status selesai)
-    db
-      .query(
-        `SELECT
-           COUNT(*) AS total_transaksi,
-           COALESCE(SUM(CASE WHEN LOWER(TRIM(pb.status)) = 'selesai' THEN pr.harga * COALESCE(pb.jumlah, 1) ELSE 0 END), 0) AS total_pendapatan,
-           COALESCE(SUM(CASE WHEN LOWER(TRIM(pb.pembayaran)) IN ('sudah bayar', 'dibayar', 'lunas') THEN pr.harga * COALESCE(pb.jumlah, 1) ELSE 0 END), 0) AS pendapatan_dibayar
-         FROM pembelian pb
-         JOIN produk pr ON pr.id_produk = pb.id_produk
-         WHERE ${where}`,
-        params
-      )
-      .then(([rows]) => rows[0]),
-    // breakdown status
-    db
-      .query(
-        `SELECT pb.status, COUNT(*) AS total
-         FROM pembelian pb
-         WHERE ${where}
-         GROUP BY pb.status
-         ORDER BY total DESC`,
-        params
-      )
-      .then(([rows]) => rows),
-    // top produk
-    db
-      .query(
-        `SELECT pr.id_produk, pr.nama_produk, pr.harga, pr.gambar, COUNT(*) AS terjual,
-                COALESCE(SUM(pr.harga), 0) AS omzet
-         FROM pembelian pb
-         JOIN produk pr ON pr.id_produk = pb.id_produk
-         WHERE ${where}
-         GROUP BY pr.id_produk, pr.nama_produk, pr.harga, pr.gambar
-         ORDER BY terjual DESC
-         LIMIT 10`,
-        params
-      )
-      .then(([rows]) => rows),
-    // per bulan (6 bulan terakhir atau dalam range)
-    db
-      .query(
-        `SELECT DATE_FORMAT(pb.created_at, '%Y-%m') AS bulan,
-                COUNT(*) AS total_transaksi,
-                COALESCE(SUM(CASE WHEN LOWER(TRIM(pb.status)) = 'selesai' THEN pr.harga * COALESCE(pb.jumlah, 1) ELSE 0 END), 0) AS pendapatan
-         FROM pembelian pb
-         JOIN produk pr ON pr.id_produk = pb.id_produk
-         WHERE ${where}
-         GROUP BY DATE_FORMAT(pb.created_at, '%Y-%m')
-         ORDER BY bulan DESC
-         LIMIT 12`,
-        params
-      )
-      .then(([rows]) => rows),
-  ]).then(([summary, byStatus, topProduk, perBulan]) => ({
-    total_transaksi: Number(summary.total_transaksi || 0),
-    total_pendapatan: Number(summary.total_pendapatan || 0),
-    pendapatan_dibayar: Number(summary.pendapatan_dibayar || 0),
-    by_status: byStatus,
-    top_produk: topProduk,
-    per_bulan: perBulan,
+  return data.map((row) => ({
+    ...row,
+    nama_produk: row.produk?.nama_produk || null,
+    harga: row.produk?.harga || null,
+    gambar: row.produk?.gambar || null,
+    produk: undefined,
   }));
 }
 
-// Pesanan terbaru milik satu pembeli
-function getRecentByPembeliId(idPembeli, limit = 5) {
-  return db
-    .query(
-      `SELECT pb.id, pb.status, pb.pembayaran, pb.created_at,
-              pr.nama_produk, pr.harga, pr.gambar
-       FROM pembelian pb
-       JOIN produk pr ON pr.id_produk = pb.id_produk
-       WHERE pb.id_pembeli = ?
-       ORDER BY pb.created_at DESC
-       LIMIT ?`,
-      [idPembeli, limit]
-    )
-    .then(([rows]) => rows);
+// Ambil pembelian berdasarkan ID dan ID pembeli
+async function findPembelianByIdAndPembeliId(id, idPembeli) {
+  const { data, error } = await supabase
+    .from("pembelian")
+    .select(`
+      *,
+      produk:id_produk ( nama_produk, harga, gambar )
+    `)
+    .eq("id", id)
+    .eq("id_pembeli", idPembeli)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
+  }
+
+  return {
+    ...data,
+    nama_produk: data.produk?.nama_produk || null,
+    harga: data.produk?.harga || null,
+    gambar: data.produk?.gambar || null,
+    produk: undefined,
+  };
 }
 
+// Statistik pembelian milik satu pembeli
+async function getStatsByPembeliId(idPembeli) {
+  const { data, error } = await supabase
+    .from("pembelian")
+    .select("status")
+    .eq("id_pembeli", idPembeli);
+
+  if (error) throw error;
+
+  const result = {};
+  data.forEach((row) => {
+    const status = row.status || "unknown";
+    result[status] = (result[status] || 0) + 1;
+  });
+
+  return Object.entries(result).map(([status, total]) => ({ status, total }));
+}
+
+// Statistik pembelian keseluruhan
+async function getAdminStats() {
+  const { data, error } = await supabase
+    .from("pembelian")
+    .select("status");
+
+  if (error) throw error;
+
+  const result = {};
+  data.forEach((row) => {
+    const status = row.status || "unknown";
+    result[status] = (result[status] || 0) + 1;
+  });
+
+  return Object.entries(result).map(([status, total]) => ({ status, total }));
+}
+
+// Pesanan selesai tetapi belum dibayar
+async function countTerjualBelumBayar() {
+  const { count, error } = await supabase
+    .from("pembelian")
+    .select("*", { count: "exact", head: true })
+    .ilike("status", "selesai")
+    .or("pembayaran.ilike.%belum bayar%,pembayaran.ilike.%belum%");
+
+  if (error) throw error;
+  return count || 0;
+}
+
+// Total semua transaksi
+async function countTransaksi() {
+  const { count, error } = await supabase
+    .from("pembelian")
+    .select("*", { count: "exact", head: true });
+
+  if (error) throw error;
+  return count || 0;
+}
+
+// Total produk terjual
+async function countProdukTerjual() {
+  const { data, error } = await supabase
+    .from("pembelian")
+    .select("jumlah")
+    .ilike("status", "selesai");
+
+  if (error) throw error;
+  return data.reduce((sum, row) => sum + (row.jumlah || 1), 0);
+}
+
+// Pesanan yang masih aktif
+async function countPesananAktif() {
+  const { count, error } = await supabase
+    .from("pembelian")
+    .select("*", { count: "exact", head: true })
+    .not("status", "ilike", "selesai");
+
+  if (error) throw error;
+  return count || 0;
+}
+
+// Total pendapatan (status selesai)
+async function sumPendapatanDibayar() {
+  const { data, error } = await supabase
+    .from("pembelian")
+    .select(`
+      jumlah,
+      produk:id_produk ( harga )
+    `)
+    .ilike("status", "selesai");
+
+  if (error) throw error;
+
+  return data.reduce((sum, row) => {
+    const harga = row.produk?.harga || 0;
+    const qty = row.jumlah || 1;
+    return sum + harga * qty;
+  }, 0);
+}
+
+// Pembelian terbaru
+async function getRecentPembelian(limit = 5) {
+  const { data, error } = await supabase
+    .from("pembelian")
+    .select(`
+      *,
+      users:id_pembeli ( nama_d, nama_b ),
+      produk:id_produk ( nama_produk )
+    `)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+
+  return data.map((row) => ({
+    ...row,
+    nama_pembeli: row.users ? `${row.users.nama_d} ${row.users.nama_b}` : null,
+    nama_produk: row.produk?.nama_produk || null,
+    users: undefined,
+    produk: undefined,
+  }));
+}
+
+// Laporan admin (sederhana dulu)
+async function getLaporanSummary(fromDate, toDate) {
+  let query = supabase
+    .from("pembelian")
+    .select(`
+      *,
+      produk:id_produk ( id_produk, nama_produk, harga, gambar )
+    `);
+
+  if (fromDate) query = query.gte("created_at", fromDate);
+  if (toDate) query = query.lte("created_at", toDate + "T23:59:59");
+
+  const { data, error } = await query.order("created_at", { ascending: false });
+  if (error) throw error;
+
+  const total_transaksi = data.length;
+  let total_pendapatan = 0;
+  let pendapatan_dibayar = 0;
+  const byStatus = {};
+  const produkMap = {};
+
+  data.forEach((row) => {
+    const status = (row.status || "").toLowerCase().trim();
+    const pembayaran = (row.pembayaran || "").toLowerCase().trim();
+    const harga = row.produk?.harga || 0;
+    const qty = row.jumlah || 1;
+    const subtotal = harga * qty;
+
+    byStatus[status] = (byStatus[status] || 0) + 1;
+
+    if (status === "selesai") {
+      total_pendapatan += subtotal;
+    }
+
+    if (["sudah bayar", "dibayar", "lunas"].includes(pembayaran) || pembayaran.includes("sudah")) {
+      pendapatan_dibayar += subtotal;
+    }
+
+    const pid = row.produk?.id_produk;
+    if (pid) {
+      if (!produkMap[pid]) {
+        produkMap[pid] = {
+          id_produk: pid,
+          nama_produk: row.produk.nama_produk,
+          harga: row.produk.harga,
+          gambar: row.produk.gambar,
+          terjual: 0,
+          omzet: 0,
+        };
+      }
+      produkMap[pid].terjual += 1;
+      produkMap[pid].omzet += subtotal;
+    }
+  });
+
+  const top_produk = Object.values(produkMap)
+    .sort((a, b) => b.terjual - a.terjual)
+    .slice(0, 10);
+
+  return {
+    total_transaksi,
+    total_pendapatan,
+    pendapatan_dibayar,
+    by_status: Object.entries(byStatus).map(([status, total]) => ({ status, total })),
+    top_produk,
+    per_bulan: [], // bisa ditambah nanti
+  };
+}
+
+// Pesanan terbaru milik satu pembeli
+async function getRecentByPembeliId(idPembeli, limit = 5) {
+  const { data, error } = await supabase
+    .from("pembelian")
+    .select(`
+      id, status, pembayaran, created_at,
+      produk:id_produk ( nama_produk, harga, gambar )
+    `)
+    .eq("id_pembeli", idPembeli)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+
+  return data.map((row) => ({
+    ...row,
+    nama_produk: row.produk?.nama_produk || null,
+    harga: row.produk?.harga || null,
+    gambar: row.produk?.gambar || null,
+    produk: undefined,
+  }));
+}
 
 // Total belanja pembeli yang sudah dibayar
-// Status bayar di app: "Sudah Bayar" / "Belum Bayar" (lihat STATUS_BAYAR frontend)
-function sumBelanjaDibayarByPembeli(idPembeli) {
-  const sqlWithJumlah = `
-    SELECT COALESCE(SUM(pr.harga * COALESCE(pb.jumlah, 1)), 0) AS total
-    FROM pembelian pb
-    JOIN produk pr ON pr.id_produk = pb.id_produk
-    WHERE pb.id_pembeli = ?
-      AND (
-        LOWER(TRIM(pb.pembayaran)) IN ('sudah bayar', 'dibayar', 'lunas', 'paid')
-        OR LOWER(TRIM(pb.pembayaran)) LIKE '%sudah%bayar%'
-      )`;
-  const sqlNoJumlah = `
-    SELECT COALESCE(SUM(pr.harga), 0) AS total
-    FROM pembelian pb
-    JOIN produk pr ON pr.id_produk = pb.id_produk
-    WHERE pb.id_pembeli = ?
-      AND (
-        LOWER(TRIM(pb.pembayaran)) IN ('sudah bayar', 'dibayar', 'lunas', 'paid')
-        OR LOWER(TRIM(pb.pembayaran)) LIKE '%sudah%bayar%'
-      )`;
+async function sumBelanjaDibayarByPembeli(idPembeli) {
+  const { data, error } = await supabase
+    .from("pembelian")
+    .select(`
+      jumlah,
+      pembayaran,
+      produk:id_produk ( harga )
+    `)
+    .eq("id_pembeli", idPembeli);
 
-  return db
-    .query(sqlWithJumlah, [idPembeli])
-    .then(([rows]) => Number(rows[0].total || 0))
-    .catch(() =>
-      db
-        .query(sqlNoJumlah, [idPembeli])
-        .then(([rows]) => Number(rows[0].total || 0))
-    );
+  if (error) throw error;
+
+  return data.reduce((sum, row) => {
+    const bayar = (row.pembayaran || "").toLowerCase().trim();
+    if (["sudah bayar", "dibayar", "lunas", "paid"].includes(bayar) || bayar.includes("sudah")) {
+      const harga = row.produk?.harga || 0;
+      const qty = row.jumlah || 1;
+      return sum + harga * qty;
+    }
+    return sum;
+  }, 0);
 }
 
 // Jumlah pesanan belum dibayar milik pembeli
-function countBelumBayarByPembeli(idPembeli) {
-  return db
-    .query(
-      `SELECT COUNT(*) AS total
-       FROM pembelian pb
-       WHERE pb.id_pembeli = ?
-         AND (
-           pb.pembayaran IS NULL
-           OR TRIM(pb.pembayaran) = ''
-           OR LOWER(TRIM(pb.pembayaran)) IN ('belum bayar', 'belum')
-         )`,
-      [idPembeli]
-    )
-    .then(([rows]) => Number(rows[0].total || 0));
+async function countBelumBayarByPembeli(idPembeli) {
+  const { count, error } = await supabase
+    .from("pembelian")
+    .select("*", { count: "exact", head: true })
+    .eq("id_pembeli", idPembeli)
+    .or("pembayaran.is.null,pembayaran.eq.,pembayaran.ilike.%belum%");
+
+  if (error) throw error;
+  return count || 0;
 }
 
 module.exports = {

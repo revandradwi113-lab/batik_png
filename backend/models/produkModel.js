@@ -1,49 +1,80 @@
-// Model untuk tabel produk
-const db = require("../config/db");
+// Model untuk tabel produk (Supabase)
+const supabase = require("../config/db");
 
 // Ambil semua produk
-function findAllProduk() {
-  return db.query("SELECT * FROM produk ORDER BY created_at DESC")
-    .then(([rows]) => rows);
+async function findAllProduk() {
+  const { data, error } = await supabase
+    .from("produk")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
 }
 
 // Ambil satu produk by id_produk
-function findProdukById(id) {
-  return db.query("SELECT * FROM produk WHERE id_produk = ?", [id])
-    .then(([rows]) => rows[0]);
+async function findProdukById(id) {
+  const { data, error } = await supabase
+    .from("produk")
+    .select("*")
+    .eq("id_produk", id)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
+  }
+  return data;
 }
 
-// Tambah produk baru, return insertId
-function insertProduk(data) {
+// Tambah produk baru, return id
+async function insertProduk(data) {
   const { nama_produk, deskripsi, harga, gambar, kategori } = data;
-  return db.query(
-    `INSERT INTO produk (nama_produk, deskripsi, harga, gambar, kategori)
-     VALUES (?, ?, ?, ?, ?)`,
-    [nama_produk, deskripsi, harga, gambar, kategori]
-  ).then(([result]) => result.insertId);
+
+  const { data: result, error } = await supabase
+    .from("produk")
+    .insert([{ nama_produk, deskripsi, harga, gambar, kategori }])
+    .select("id_produk")
+    .single();
+
+  if (error) throw error;
+  return result.id_produk;
 }
 
-// Update produk by id_produk, return affectedRows
-function updateProduk(id, data) {
+// Update produk by id_produk
+async function updateProduk(id, data) {
   const { nama_produk, deskripsi, harga, gambar, kategori } = data;
-  return db.query(
-    `UPDATE produk
-     SET nama_produk = ?, deskripsi = ?, harga = ?, gambar = ?, kategori = ?
-     WHERE id_produk = ?`,
-    [nama_produk, deskripsi, harga, gambar, kategori, id]
-  ).then(([result]) => result.affectedRows);
+
+  const { data: result, error } = await supabase
+    .from("produk")
+    .update({ nama_produk, deskripsi, harga, gambar, kategori })
+    .eq("id_produk", id)
+    .select();
+
+  if (error) throw error;
+  return result.length > 0 ? 1 : 0;
 }
 
-// Hapus produk by id_produk, return affectedRows
-function deleteProduk(id) {
-  return db.query("DELETE FROM produk WHERE id_produk = ?", [id])
-    .then(([result]) => result.affectedRows);
+// Hapus produk by id_produk
+async function deleteProduk(id) {
+  const { data, error } = await supabase
+    .from("produk")
+    .delete()
+    .eq("id_produk", id)
+    .select();
+
+  if (error) throw error;
+  return data.length > 0 ? 1 : 0;
 }
 
-// Hitung total produk di katalog
-function countProduk() {
-  return db.query("SELECT COUNT(*) AS total FROM produk")
-    .then(([rows]) => rows[0].total);
+// Hitung total produk
+async function countProduk() {
+  const { count, error } = await supabase
+    .from("produk")
+    .select("*", { count: "exact", head: true });
+
+  if (error) throw error;
+  return count || 0;
 }
 
 module.exports = {

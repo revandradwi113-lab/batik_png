@@ -1,97 +1,129 @@
-// Model untuk tabel users
-const db = require("../config/db");
+// Model untuk tabel users (Supabase)
+const supabase = require("../config/db");
 
-// Simpan user baru, return insertId
+// Simpan user baru, return id
 async function createUser(data) {
   const {
     nama_d, nama_b, kelamin, lahir, alamat, phone, email, role, uname, passwd, foto,
   } = data;
 
-  const [result] = await db.execute(
-    `INSERT INTO users
-      (nama_d, nama_b, kelamin, lahir, alamat, phone, email, role, uname, passwd, foto)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [nama_d, nama_b, kelamin, lahir, alamat, phone, email, role, uname, passwd, foto]
-  );
-  return result.insertId;
+  const { data: result, error } = await supabase
+    .from("users")
+    .insert([{
+      nama_d, nama_b, kelamin, lahir, alamat, phone,
+      email, role, uname, passwd, foto: foto || "",
+    }])
+    .select("id")
+    .single();
+
+  if (error) throw error;
+  return result.id;
 }
 
-// Cari user berdasarkan email (cek duplikat saat register)
+// Cari user berdasarkan email
 async function findUserByEmail(email) {
-  const [rows] = await db.execute(
-    "SELECT * FROM users WHERE email = ? LIMIT 1",
-    [email]
-  );
-  return rows[0];
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("email", email)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
 }
 
-// Cari user berdasarkan email ATAU uname (dipakai saat login)
+// Cari user berdasarkan email ATAU uname (untuk login)
 async function findUserByCredential(credential) {
-  const [rows] = await db.execute(
-    "SELECT * FROM users WHERE email = ? OR uname = ? LIMIT 1",
-    [credential, credential]
-  );
-  return rows[0];
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .or(`email.eq.${credential},uname.eq.${credential}`)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
 }
 
-// Ambil profil user by id, tanpa kolom passwd
+// Ambil profil user by id (tanpa passwd)
 async function findUserById(id) {
-  const [rows] = await db.execute(
-    `SELECT id, nama_d, nama_b, kelamin, lahir, alamat, phone, email, role, uname, foto, created_at, updated_at
-     FROM users WHERE id = ? LIMIT 1`,
-    [id]
-  );
-  return rows[0];
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, nama_d, nama_b, kelamin, lahir, alamat, phone, email, role, uname, foto, created_at, updated_at")
+    .eq("id", id)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
 }
 
-// Ambil hash passwd by id (dipakai saat ganti password)
+// Ambil hash passwd by id
 async function findPasswdHashById(id) {
-  const [rows] = await db.execute(
-    "SELECT passwd FROM users WHERE id = ? LIMIT 1",
-    [id]
-  );
-  return rows[0] ? rows[0].passwd : null;
+  const { data, error } = await supabase
+    .from("users")
+    .select("passwd")
+    .eq("id", id)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? data.passwd : null;
 }
 
-// Update profil user (tanpa ganti passwd/role)
+// Update profil user
 async function updateUserProfile(id, data) {
   const {
     nama_d, nama_b, kelamin, lahir, alamat, phone, email, uname, foto,
   } = data;
 
-  const [result] = await db.execute(
-    `UPDATE users
-     SET nama_d = ?, nama_b = ?, kelamin = ?, lahir = ?, alamat = ?,
-         phone = ?, email = ?, uname = ?, foto = ?
-     WHERE id = ?`,
-    [nama_d, nama_b, kelamin, lahir, alamat, phone, email, uname, foto, id]
-  );
-  return result.affectedRows;
+  const { data: result, error } = await supabase
+    .from("users")
+    .update({
+      nama_d, nama_b, kelamin, lahir, alamat,
+      phone, email, uname, foto,
+    })
+    .eq("id", id)
+    .select();
+
+  if (error) throw error;
+  return result.length > 0 ? 1 : 0;
 }
 
-// Ambil semua user berdasarkan role (dipakai admin untuk kelola pembeli), tanpa passwd
+// Ambil semua user berdasarkan role
 async function findAllUsersByRole(role) {
-  const [rows] = await db.execute(
-    `SELECT id, nama_d, nama_b, kelamin, lahir, alamat, phone, email, role, uname, foto, created_at, updated_at
-     FROM users WHERE role = ? ORDER BY created_at DESC`,
-    [role]
-  );
-  return rows;
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, nama_d, nama_b, kelamin, lahir, alamat, phone, email, role, uname, foto, created_at, updated_at")
+    .eq("role", role)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
 }
 
-// Hapus user by id, return affectedRows
+// Hapus user by id
 async function deleteUserById(id) {
-  const [result] = await db.execute("DELETE FROM users WHERE id = ?", [id]);
-  return result.affectedRows;
+  const { data, error } = await supabase
+    .from("users")
+    .delete()
+    .eq("id", id)
+    .select();
+
+  if (error) throw error;
+  return data.length > 0 ? 1 : 0;
 }
 
-// Hitung jumlah user berdasarkan role (mis. total pembeli terdaftar)
+// Hitung jumlah user berdasarkan role
 async function countByRole(role) {
-  const [rows] = await db.execute(
-    "SELECT COUNT(*) AS total FROM users WHERE role = ?",
-    [role]
-  );
-  return rows[0].total;
+  const { count, error } = await supabase
+    .from("users")
+    .select("*", { count: "exact", head: true })
+    .eq("role", role);
+
+  if (error) throw error;
+  return count || 0;
 }
 
 module.exports = {

@@ -1,49 +1,80 @@
-// Model untuk tabel artikel
-const db = require("../config/db");
+// Model untuk tabel artikel (Supabase)
+const supabase = require("../config/db");
 
 // Ambil semua artikel
-function findAllArtikel() {
-  return db.query("SELECT * FROM artikel ORDER BY created_at DESC")
-    .then(([rows]) => rows);
+async function findAllArtikel() {
+  const { data, error } = await supabase
+    .from("artikel")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
 }
 
-// Hitung total artikel yang sudah diupload
-function countArtikel() {
-  return db.query("SELECT COUNT(*) AS total FROM artikel")
-    .then(([rows]) => rows[0].total);
+// Hitung total artikel
+async function countArtikel() {
+  const { count, error } = await supabase
+    .from("artikel")
+    .select("*", { count: "exact", head: true });
+
+  if (error) throw error;
+  return count || 0;
 }
 
 // Ambil satu artikel by id
-function findArtikelById(id) {
-  return db.query("SELECT * FROM artikel WHERE id = ?", [id])
-    .then(([rows]) => rows[0]);
+async function findArtikelById(id) {
+  const { data, error } = await supabase
+    .from("artikel")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null; // tidak ditemukan
+    throw error;
+  }
+  return data;
 }
 
-// Tambah artikel baru, return insertId
-function insertArtikel(data) {
+// Tambah artikel baru, return id
+async function insertArtikel(data) {
   const { judul, ringkasan, isi, gambar } = data;
-  return db.query(
-    `INSERT INTO artikel (judul, ringkasan, isi, gambar)
-     VALUES (?, ?, ?, ?)`,
-    [judul, ringkasan, isi, gambar]
-  ).then(([result]) => result.insertId);
+
+  const { data: result, error } = await supabase
+    .from("artikel")
+    .insert([{ judul, ringkasan, isi, gambar }])
+    .select("id")
+    .single();
+
+  if (error) throw error;
+  return result.id;
 }
 
-// Update artikel by id, return affectedRows
-function updateArtikel(id, data) {
+// Update artikel by id, return true/false
+async function updateArtikel(id, data) {
   const { judul, ringkasan, isi, gambar } = data;
-  return db.query(
-    `UPDATE artikel
-     SET judul = ?, ringkasan = ?, isi = ?, gambar = ?
-     WHERE id = ?`,
-    [judul, ringkasan, isi, gambar, id]
-  ).then(([result]) => result.affectedRows);
+
+  const { data: result, error } = await supabase
+    .from("artikel")
+    .update({ judul, ringkasan, isi, gambar })
+    .eq("id", id)
+    .select();
+
+  if (error) throw error;
+  return result.length > 0 ? 1 : 0;
 }
 
-// Hapus artikel by id, return affectedRows
-function deleteArtikel(id) {
-  return db.query("DELETE FROM artikel WHERE id = ?", [id])
-    .then(([result]) => result.affectedRows);
+// Hapus artikel by id, return true/false
+async function deleteArtikel(id) {
+  const { data, error } = await supabase
+    .from("artikel")
+    .delete()
+    .eq("id", id)
+    .select();
+
+  if (error) throw error;
+  return data.length > 0 ? 1 : 0;
 }
 
 module.exports = {
