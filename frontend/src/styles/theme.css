@@ -1,0 +1,1062 @@
+/* ===== Batik Ponorogo — design tokens =====
+   Nama variabel (--fg-*) dipertahankan agar tidak perlu ganti di semua
+   file .jsx yang memakainya; nilainya diganti ke palet batik (sogan/coklat,
+   merah marun, dan emas) menggantikan palet hijau kebun sebelumnya. */
+:root {
+  --fg-cream: #f6efdd;
+  --fg-green-deep: #4a2c17;
+  --fg-green: #8a5a2b;
+  --fg-harvest: #b8860b;
+  --fg-charcoal: #2b2320;
+  --fg-line: #ddccA6;
+
+  --font-display: "Fraunces", serif;
+  --font-body: "Work Sans", sans-serif;
+}
+
+body {
+  background: var(--fg-cream);
+  color: var(--fg-charcoal);
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, .fg-display {
+  font-family: var(--font-display);
+  color: var(--fg-green-deep);
+}
+
+/* ===== Navbar =====
+   Diminta: bagian atas (navbar) berwarna putih dengan garis pembatas. */
+.fg-navbar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--fg-line);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+.fg-navbar .navbar-brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 22px;
+  color: var(--fg-green-deep) !important;
+  letter-spacing: 0.01em;
+}
+.fg-navbar .nav-link {
+  color: var(--fg-charcoal) !important;
+  font-weight: 500;
+}
+.fg-navbar .nav-link:hover,
+.fg-navbar .nav-link.active {
+  color: var(--fg-green) !important;
+}
+.fg-navbar .btn-fg-outline {
+  border: 1px solid var(--fg-green);
+  color: var(--fg-green-deep);
+  border-radius: 999px;
+  padding: 6px 16px;
+}
+.fg-navbar .btn-fg-outline:hover {
+  background: var(--fg-green-deep);
+  border-color: var(--fg-green-deep);
+  color: #fff;
+}
+
+/* ===== Hero =====
+   Diminta: gambar tidak kepotong dan diam (tidak ikut geser) saat halaman di-scroll.
+   - min-height pakai vh + clamp supaya foto tidak "kepotong" aneh di layar sempit/lebar.
+   - background-attachment: fixed membuat gambar diam di tempat saat konten discroll. */
+.fg-hero {
+  background-color: var(--fg-green-deep);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  color: var(--fg-cream);
+  min-height: clamp(420px, 65vh, 640px);
+  display: flex;
+  align-items: center;
+  padding: 48px 0;
+}
+
+/* background-attachment: fixed tidak stabil di banyak browser mobile (khususnya iOS),
+   jadi di layar kecil dikembalikan ke scroll biasa supaya tetap tampil mulus. */
+@media (max-width: 767.98px) {
+  .fg-hero {
+    background-attachment: scroll;
+    min-height: 50vh;
+  }
+}
+
+.fg-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(31, 45, 38, 0.55);
+}
+.fg-hero .container {
+  position: relative;
+  z-index: 1;
+}
+.fg-hero h1 {
+  color: var(--fg-cream);
+  font-size: clamp(35px, 5vw, 54px);
+  line-height: 1.1;
+  font-weight: 600;
+  max-width: 14ch;
+}
+.fg-hero p {
+  color: rgba(250, 247, 240, 0.8);
+  max-width: 46ch;
+  font-size: 17px;
+}
+
+/* ===== Kategori pills (signature element: label seperti tusuk kebun) ===== */
+.fg-kategori-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+}
+.fg-kategori-pill {
+  position: relative;
+  padding: 8px 18px 8px 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(250, 247, 240, 0.35);
+  background: rgba(250, 247, 240, 0.06);
+  color: var(--fg-cream);
+  font-weight: 500;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.fg-kategori-pill::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-harvest);
+}
+.fg-kategori-pill:hover {
+  border-color: var(--fg-cream);
+}
+.fg-kategori-pill.active {
+  background: var(--fg-harvest);
+  border-color: var(--fg-harvest);
+  color: #2b1c0e;
+}
+.fg-kategori-pill.active::before {
+  background: #2b1c0e;
+}
+
+/* ===== Cards ===== */
+.fg-card {
+  border: 1px solid var(--fg-line);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  height: 100%;
+}
+
+.fg-card-thumb {
+  aspect-ratio: 4 / 3;
+  background: #eef1e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-green);
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+.fg-card-body {
+  padding: 16px 18px 19px;
+}
+.fg-card-kategori {
+  display: inline-block;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-green);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.fg-card-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--fg-green-deep);
+  margin-bottom: 6px;
+}
+.fg-card-harga {
+  font-weight: 600;
+  color: var(--fg-harvest);
+}
+
+/* ===== Buttons ===== */
+.btn-fg-primary {
+  background: var(--fg-green);
+  border: none;
+  color: #fff;
+  border-radius: 999px;
+  padding: 9px 22px;
+  font-weight: 600;
+}
+.btn-fg-primary:hover {
+  background: var(--fg-green-deep);
+  color: #fff;
+}
+
+/* ===== Sections ===== */
+.fg-section-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--fg-green-deep);
+  margin-bottom: 24px;
+}
+
+/* ===== Artikel terbaru (beranda) ===== */
+.fg-artikel-terbaru {
+  background: #fff;
+  border-top: 1px solid var(--fg-line);
+}
+.fg-link-more {
+  font-weight: 600;
+  color: var(--fg-green);
+  text-decoration: none;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.fg-link-more:hover {
+  color: var(--fg-green-deep);
+  text-decoration: underline;
+}
+
+/* ===== Footer ===== */
+.fg-footer {
+  background: #000000;
+  color: rgba(250, 247, 240, 0.75);
+  padding: 40px 0;
+  margin-top: 64px;
+}
+.fg-footer strong {
+  color: var(--fg-cream);
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+.fg-footer a {
+  color: rgba(250, 247, 240, 0.75);
+  text-decoration: none;
+}
+.fg-footer a:hover {
+  color: #fff;
+}
+
+/* Ikon sosial (Bootstrap Icons) di footer */
+.fg-footer-social {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.fg-footer-social-icon {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(250, 247, 240, 0.3);
+  color: var(--fg-cream);
+  font-size: 17px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+    transform 0.15s ease;
+}
+.fg-footer-social-icon:hover {
+  background: var(--fg-harvest);
+  border-color: var(--fg-harvest);
+  color: #2b1c0e;
+  transform: translateY(-2px);
+}
+
+/* ===== Forms ===== */
+.fg-form-card {
+  border: 1px solid var(--fg-line);
+  border-radius: 16px;
+  background: #fff;
+  padding: 32px;
+}
+.fg-form-card label {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--fg-green-deep);
+}
+.form-control:focus {
+  border-color: var(--fg-green);
+  box-shadow: 0 0 0 3px rgba(91, 138, 107, 0.15);
+}
+
+/* ===== Kategori pills versi terang (dipakai di luar hero: Toko, Belanja) ===== */
+.fg-kategori-tabs--light {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.fg-kategori-pill--light {
+  position: relative;
+  padding: 8px 18px 8px 26px;
+  border-radius: 999px;
+  border: 1px solid var(--fg-line);
+  background: #fff;
+  color: var(--fg-green-deep);
+  font-weight: 500;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.fg-kategori-pill--light::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-harvest);
+}
+.fg-kategori-pill--light:hover {
+  border-color: var(--fg-green);
+}
+.fg-kategori-pill--light.active {
+  background: var(--fg-green-deep);
+  border-color: var(--fg-green-deep);
+  color: #fff;
+}
+.fg-kategori-pill--light.active::before {
+  background: var(--fg-harvest);
+}
+
+/* Kartu produk yang sedang dipilih untuk dipesan (halaman Belanja) */
+.fg-card--selected {
+  border-color: var(--fg-green);
+  box-shadow: 0 0 0 2px var(--fg-green);
+}
+
+/* ===== Dashboard layout (Admin & Akun Pembeli) ===== */
+.fg-dash {
+  display: flex;
+  min-height: 100vh;
+  background: var(--fg-cream);
+}
+.fg-dash-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--fg-green-deep);
+  color: var(--fg-cream);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.fg-dash-brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--fg-cream);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 20px;
+  border-bottom: 1px solid rgba(250, 247, 240, 0.15);
+  margin-bottom: 16px;
+}
+.fg-dash-brand strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.25;
+  color: var(--fg-cream);
+}
+.fg-dash-brand small {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(250, 247, 240, 0.65);
+  margin-top: 2px;
+}
+.fg-dash-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--fg-harvest);
+  color: #2b1c0e;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+}
+.fg-dash-badge--pembeli {
+  background: var(--fg-cream);
+  color: var(--fg-green-deep);
+}
+.fg-dash-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+}
+.fg-dash-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: rgba(250, 247, 240, 0.8);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 15px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.fg-dash-link:hover {
+  background: rgba(250, 247, 240, 0.08);
+  color: #fff;
+}
+.fg-dash-link.active {
+  background: var(--fg-cream);
+  color: var(--fg-green-deep);
+}
+.fg-dash-link--muted {
+  margin-top: 8px;
+  border-top: 1px solid rgba(250, 247, 240, 0.15);
+  padding-top: 14px;
+}
+.fg-dash-logout {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: 1px solid rgba(250, 247, 240, 0.3);
+  color: var(--fg-cream);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 500;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.fg-dash-logout:hover {
+  background: rgba(250, 247, 240, 0.1);
+}
+.fg-dash-main {
+  flex-grow: 1;
+  padding: 32px 40px;
+  min-width: 0;
+}
+
+@media (max-width: 767.98px) {
+  .fg-dash {
+    flex-direction: column;
+  }
+  .fg-dash-sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .fg-dash-brand {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    flex-basis: 100%;
+  }
+  .fg-dash-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    flex-grow: 0;
+  }
+  .fg-dash-link--muted {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 10px;
+  }
+  .fg-dash-logout {
+    margin-top: 0;
+  }
+  .fg-dash-main {
+    padding: 24px 16px;
+  }
+}
+
+/* Tabel sederhana di halaman admin */
+.fg-admin-table {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.fg-admin-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-green-deep);
+  border-bottom-width: 1px;
+}
+
+/* ===== Article ===== */
+.fg-article-body {
+  font-size: 17px;
+  line-height: 1.8;
+  color: var(--fg-charcoal);
+  white-space: pre-line;
+}
+/* ===== Product detail gallery ===== */
+.fg-product-gallery {
+  border-radius: 16px;
+  overflow: hidden;
+  background: #eee8dc;
+  min-height: 320px;
+  box-shadow: 0 8px 28px rgba(43, 35, 32, 0.08);
+}
+.fg-product-img {
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  object-fit: cover;
+  display: block;
+}
+.fg-product-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  padding: 24px;
+  text-align: center;
+  color: var(--fg-green);
+  font-family: var(--font-display);
+}
+.fg-qty-input {
+  width: 64px !important;
+  text-align: center;
+}
+.fg-login-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.fg-product-actions {
+  padding-top: 8px;
+  border-top: 1px solid var(--fg-line);
+}
+
+/* ===== Cart page ===== */
+.fg-empty-cart {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px dashed var(--fg-line);
+  max-width: 480px;
+  margin: 0 auto;
+}
+.fg-empty-icon {
+  font-size: 3rem;
+  line-height: 1;
+  opacity: 0.7;
+}
+.fg-cart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fg-cart-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid var(--fg-line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 10px rgba(43, 35, 32, 0.04);
+  transition: box-shadow 0.15s ease;
+}
+.fg-cart-item:hover {
+  box-shadow: 0 4px 16px rgba(43, 35, 32, 0.08);
+}
+.fg-cart-thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f3f1ec;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fg-cart-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.fg-cart-qty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fg-cart-qty .btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+.fg-cart-subtotal {
+  min-width: 100px;
+}
+.fg-checkout-card {
+  background: #fff;
+  border: 1px solid var(--fg-line);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(43, 35, 32, 0.06);
+  position: sticky;
+  top: 88px;
+}
+.fg-checkout-total {
+  background: var(--fg-cream);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+/* ===== Card polish ===== */
+.fg-card {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--fg-line);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
+}
+.fg-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(43, 35, 32, 0.1);
+}
+.fg-card-thumb {
+  aspect-ratio: 1;
+  background: #eee8dc;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fg-card-body {
+  padding: 14px 16px 18px;
+}
+.fg-card-kategori {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-harvest);
+  background: rgba(184, 134, 11, 0.12);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.fg-card-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg-green-deep);
+  margin-top: 8px;
+  line-height: 1.35;
+}
+.fg-card-harga {
+  color: var(--fg-green);
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+/* Buttons */
+.btn-fg-primary {
+  background: var(--fg-green-deep);
+  border-color: var(--fg-green-deep);
+  color: #fff;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-weight: 500;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.btn-fg-primary:hover,
+.btn-fg-primary:focus {
+  background: var(--fg-green);
+  border-color: var(--fg-green);
+  color: #fff;
+}
+.btn-fg-outline {
+  border: 1.5px solid var(--fg-green);
+  color: var(--fg-green-deep);
+  background: transparent;
+  border-radius: 999px;
+  padding: 7px 18px;
+  font-weight: 500;
+}
+.btn-fg-outline:hover,
+.btn-fg-outline:focus {
+  background: var(--fg-green-deep);
+  border-color: var(--fg-green-deep);
+  color: #fff;
+}
+
+/* Kategori pills */
+.fg-kategori-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fg-kategori-pill {
+  border: 1px solid var(--fg-line);
+  background: #fff;
+  color: var(--fg-charcoal);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.fg-kategori-pill:hover {
+  border-color: var(--fg-green);
+  color: var(--fg-green-deep);
+}
+.fg-kategori-pill.active {
+  background: var(--fg-green-deep);
+  border-color: var(--fg-green-deep);
+  color: #fff;
+}
+.fg-kategori-pill--light {
+  background: #fff;
+}
+.fg-kategori-pill--light.active {
+  background: var(--fg-green-deep);
+  color: #fff;
+}
+
+@media (max-width: 575.98px) {
+  .fg-cart-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .fg-cart-qty,
+  .fg-cart-subtotal {
+    width: 100%;
+  }
+  .fg-cart-subtotal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .fg-checkout-card {
+    position: static;
+  }
+}
+
+/* ===== Area Pembeli (mirip layout admin gelap) ===== */
+.pb-shell {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f0e6;
+}
+.pb-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: #1a1a1a;
+  color: #d8d5cd;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 100;
+}
+.pb-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.pb-sidebar-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #fff;
+}
+.pb-sidebar-logo-fallback {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #fff;
+  color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+.pb-sidebar-brand strong {
+  display: block;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.pb-sidebar-brand small {
+  display: block;
+  color: #9a9689;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.pb-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 10px;
+  gap: 2px;
+  flex: 1;
+}
+.pb-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  color: #c9c6bc;
+  text-decoration: none;
+  font-size: 14.5px;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.pb-nav-link:hover {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+}
+.pb-nav-link.active {
+  background: #4a3b1f;
+  color: #fff;
+}
+.pb-nav-badge {
+  margin-left: auto;
+  background: #dc3545;
+  color: #fff;
+  font-size: 11px;
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.pb-sidebar-foot {
+  padding: 12px 10px 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.pb-nav-muted {
+  color: #9a9689 !important;
+  font-size: 13.5px;
+}
+.pb-nav-logout {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #d4a017;
+  padding: 10px 12px;
+  font-size: 14.5px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.pb-nav-logout:hover {
+  background: rgba(255,255,255,0.04);
+}
+.pb-main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 32px;
+  background: #f5f0e6;
+}
+
+/* Dashboard content */
+.pb-dash-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #2b2320;
+  margin: 0 0 22px;
+}
+.pb-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.pb-stat {
+  background: #fff;
+  padding: 18px 20px;
+  border-left: 3px solid #2b2320;
+}
+.pb-stat--dark { border-left-color: #2b2320; }
+.pb-stat--red { border-left-color: #c0392b; }
+.pb-stat--gold { border-left-color: #d4a017; }
+.pb-stat-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a8078;
+  margin-bottom: 8px;
+}
+.pb-stat-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #2b2320;
+  line-height: 1;
+}
+.pb-panel {
+  background: #fff;
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+.pb-panel-spend {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.pb-panel-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #2b2320;
+  margin: 0 0 6px;
+  font-family: var(--font-body);
+}
+.pb-panel-desc {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #8a8078;
+  max-width: 480px;
+}
+.pb-spend-amount {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #d4a017;
+  white-space: nowrap;
+}
+.pb-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 12px;
+}
+.pb-btn-outline {
+  display: inline-block;
+  border: 1px solid #2b2320;
+  color: #2b2320 !important;
+  text-decoration: none;
+  padding: 5px 12px;
+  font-size: 13px;
+  background: #fff;
+}
+.pb-btn-outline:hover {
+  background: #2b2320;
+  color: #fff !important;
+}
+.pb-empty-text {
+  margin: 0;
+  color: #8a8078;
+  font-size: 0.95rem;
+}
+.pb-empty-text a {
+  color: #2b2320;
+}
+.pb-table {
+  font-size: 0.92rem;
+}
+.pb-table th {
+  font-weight: 600;
+  color: #6b5e52;
+  border-bottom-color: #e8e0d4;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.pb-order-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pb-order-cell img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.pb-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+.pb-quick-btn {
+  display: inline-block;
+  background: #fff;
+  border: 1px solid #e0d6c8;
+  color: #2b2320 !important;
+  text-decoration: none;
+  padding: 10px 16px;
+  font-size: 0.92rem;
+}
+.pb-quick-btn:hover {
+  border-color: #2b2320;
+  color: #2b2320 !important;
+}
+
+@media (max-width: 991.98px) {
+  .pb-stat-row {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 767.98px) {
+  .pb-shell {
+    flex-direction: column;
+  }
+  .pb-sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+  }
+  .pb-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .pb-sidebar-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+  .pb-main {
+    padding: 20px 16px;
+  }
+  .pb-panel-spend {
+    flex-direction: column;
+  }
+}
