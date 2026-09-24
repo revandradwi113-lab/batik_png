@@ -1,6 +1,6 @@
 /**
  * [buatan] CRUD produk toko.
- * URL: `/admin/produk` — adminApi produk, modal form, ImageUploadField.
+ * URL: `/admin/produk` — adminApi produk, modal form, ImageUploadField, stok.
  */
 import { useState } from 'react';
 import { adminApi } from '../../api';
@@ -17,19 +17,25 @@ import ImageUploadField from '../../components/admin/ImageUploadField';
 import { formatRupiah } from '../../utils';
 import { mediaUrl } from '../../utils';
 
-const empty = { nama_produk: '', deskripsi: '', harga: '', gambar: '', kategori: KATEGORI_PRODUK[0] };
+const empty = {
+  nama_produk: '',
+  deskripsi: '',
+  harga: '',
+  stok: '0',
+  gambar: '',
+  kategori: KATEGORI_PRODUK[0],
+};
 
 export default function AdminProdukPage() {
   const { handleError } = useAdminGuard();
   const { rows, loading, error, reload } = useAdminList(adminApi.getProduk);
-  const [modal, setModal] = useState(null); // null | 'create' | { type: 'edit', id }
-  const [detail, setDetail] = useState(null); // baris untuk AdminDetailModal
-  const [form, setForm] = useState(empty); // isi form modal tambah/ubah
+  const [modal, setModal] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [search, setSearch] = useState('');
 
-  // Filter baris berdasarkan nama produk atau kategori (case-insensitive)
   const filteredRows = rows.filter((row) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
@@ -39,13 +45,11 @@ export default function AdminProdukPage() {
     );
   });
 
-  // Buka modal kosong untuk produk baru
   const openCreate = () => {
     setForm(empty);
     setModal('create');
   };
 
-  // Muat detail lengkap lalu tampilkan modal read-only
   const openDetail = async (row) => {
     try {
       const r = await adminApi.getProdukById(row.id_produk);
@@ -55,7 +59,6 @@ export default function AdminProdukPage() {
     }
   };
 
-  // Muat data ke form lalu buka modal edit
   const openEdit = async (row) => {
     setFormError('');
     try {
@@ -65,6 +68,7 @@ export default function AdminProdukPage() {
         nama_produk: p.nama_produk ?? '',
         deskripsi: p.deskripsi ?? '',
         harga: String(p.harga ?? ''),
+        stok: String(p.stok ?? 0),
         gambar: p.gambar || '',
         kategori: p.kategori ?? KATEGORI_PRODUK[0],
       });
@@ -74,12 +78,16 @@ export default function AdminProdukPage() {
     }
   };
 
-  // POST create atau PUT update → tutup modal → reload tabel
   const onSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     setFormError('');
-    const payload = { ...form, harga: parseInt(form.harga, 10), gambar: form.gambar || null };
+    const payload = {
+      ...form,
+      harga: parseInt(form.harga, 10),
+      stok: parseInt(form.stok, 10) || 0,
+      gambar: form.gambar || null,
+    };
     try {
       if (modal === 'create') await adminApi.createProduk(payload);
       else await adminApi.updateProduk(modal.id, payload);
@@ -92,7 +100,6 @@ export default function AdminProdukPage() {
     }
   };
 
-  // DELETE setelah konfirmasi browser
   const onDelete = async (id) => {
     if (!window.confirm('Hapus produk ini?')) return;
     try {
@@ -109,14 +116,20 @@ export default function AdminProdukPage() {
     <div>
       <PageHeader
         title="Daftar produk"
-        subtitle={search ? `${filteredRows.length} dari ${rows.length} produk` : `${rows.length} produk`}
+        subtitle={
+          search
+            ? `${filteredRows.length} dari ${rows.length} produk`
+            : `${rows.length} produk`
+        }
         action={
           <button type="button" className="btn btn-dark rounded-0" onClick={openCreate}>
             + Produk baru
           </button>
         }
       />
-      {(error || formError) && <div className="alert alert-danger">{error || formError}</div>}
+      {(error || formError) && (
+        <div className="alert alert-danger">{error || formError}</div>
+      )}
 
       <div className="admin-panel">
         <div className="mb-3" style={{ maxWidth: 320 }}>
@@ -136,13 +149,14 @@ export default function AdminProdukPage() {
                 <th>Nama</th>
                 <th>Kategori</th>
                 <th>Harga</th>
+                <th>Stok</th>
                 <th className="col-actions">Tindakan</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-secondary">
+                  <td colSpan={6} className="text-secondary">
                     {search
                       ? `Tidak ada produk yang cocok dengan "${search}".`
                       : 'Belum ada produk. Klik "Produk baru" untuk menambah.'}
@@ -152,13 +166,20 @@ export default function AdminProdukPage() {
                 filteredRows.map((row) => (
                   <tr key={row.id_produk}>
                     <td>
-                      <img src={mediaUrl(row.gambar)} alt="" width={48} height={48} className="admin-thumb" />
+                      <img
+                        src={mediaUrl(row.gambar)}
+                        alt=""
+                        width={48}
+                        height={48}
+                        className="admin-thumb"
+                      />
                     </td>
                     <td>
                       <strong>{row.nama_produk}</strong>
                     </td>
                     <td>{row.kategori}</td>
                     <td>{formatRupiah(row.harga)}</td>
+                    <td>{row.stok ?? 0}</td>
                     <td className="col-actions">
                       <AdminRowActions
                         onDetail={() => openDetail(row)}
@@ -188,6 +209,7 @@ export default function AdminProdukPage() {
                 ['Nama', detail.nama_produk],
                 ['Kategori', detail.kategori],
                 ['Harga', formatRupiah(detail.harga)],
+                ['Stok', detail.stok ?? 0],
                 ['Deskripsi', detail.deskripsi],
               ]}
             />
@@ -195,24 +217,62 @@ export default function AdminProdukPage() {
         )}
       </AdminDetailModal>
 
-      <AdminModal show={Boolean(modal)} title={modal === 'create' ? 'Tambah produk' : 'Ubah produk'} onClose={() => setModal(null)} wide>
+      <AdminModal
+        show={Boolean(modal)}
+        title={modal === 'create' ? 'Tambah produk' : 'Ubah produk'}
+        onClose={() => setModal(null)}
+        wide
+      >
         <form onSubmit={onSave}>
           <div className="mb-3">
             <label className="form-label">Nama produk</label>
-            <input className="form-control" value={form.nama_produk} onChange={(e) => setForm({ ...form, nama_produk: e.target.value })} required />
+            <input
+              className="form-control"
+              value={form.nama_produk}
+              onChange={(e) => setForm({ ...form, nama_produk: e.target.value })}
+              required
+            />
           </div>
           <div className="mb-3">
             <label className="form-label">Deskripsi</label>
-            <textarea className="form-control" rows={3} value={form.deskripsi} onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} required />
+            <textarea
+              className="form-control"
+              rows={3}
+              value={form.deskripsi}
+              onChange={(e) => setForm({ ...form, deskripsi: e.target.value })}
+              required
+            />
           </div>
           <div className="row g-3">
-            <div className="col-md-6">
+            <div className="col-md-4">
               <label className="form-label">Harga (Rp)</label>
-              <input type="number" min={0} className="form-control" value={form.harga} onChange={(e) => setForm({ ...form, harga: e.target.value })} required />
+              <input
+                type="number"
+                min={0}
+                className="form-control"
+                value={form.harga}
+                onChange={(e) => setForm({ ...form, harga: e.target.value })}
+                required
+              />
             </div>
-            <div className="col-md-6">
+            <div className="col-md-4">
+              <label className="form-label">Stok</label>
+              <input
+                type="number"
+                min={0}
+                className="form-control"
+                value={form.stok}
+                onChange={(e) => setForm({ ...form, stok: e.target.value })}
+                required
+              />
+            </div>
+            <div className="col-md-4">
               <label className="form-label">Kategori</label>
-              <select className="form-select" value={form.kategori} onChange={(e) => setForm({ ...form, kategori: e.target.value })}>
+              <select
+                className="form-select"
+                value={form.kategori}
+                onChange={(e) => setForm({ ...form, kategori: e.target.value })}
+              >
                 {KATEGORI_PRODUK.map((k) => (
                   <option key={k} value={k}>
                     {k}

@@ -29,11 +29,20 @@ async function findProdukById(id) {
 
 // Tambah produk baru, return id
 async function insertProduk(data) {
-  const { nama_produk, deskripsi, harga, gambar, kategori } = data;
+  const { nama_produk, deskripsi, harga, stok, gambar, kategori } = data;
 
   const { data: result, error } = await supabase
     .from("produk")
-    .insert([{ nama_produk, deskripsi, harga, gambar, kategori }])
+    .insert([
+      {
+        nama_produk,
+        deskripsi,
+        harga,
+        stok: stok ?? 0,
+        gambar,
+        kategori,
+      },
+    ])
     .select("id_produk")
     .single();
 
@@ -43,11 +52,18 @@ async function insertProduk(data) {
 
 // Update produk by id_produk
 async function updateProduk(id, data) {
-  const { nama_produk, deskripsi, harga, gambar, kategori } = data;
+  const { nama_produk, deskripsi, harga, stok, gambar, kategori } = data;
 
   const { data: result, error } = await supabase
     .from("produk")
-    .update({ nama_produk, deskripsi, harga, gambar, kategori })
+    .update({
+      nama_produk,
+      deskripsi,
+      harga,
+      stok: stok ?? 0,
+      gambar,
+      kategori,
+    })
     .eq("id_produk", id)
     .select();
 

@@ -67,14 +67,21 @@ async function getProdukById(req, res) {
 
 async function createProduk(req, res) {
   try {
-    const { nama_produk, deskripsi, harga, gambar, kategori } = req.body;
+    const { nama_produk, deskripsi, harga, stok, gambar, kategori } = req.body;
     if (!nama_produk || !deskripsi || !harga || !kategori) {
       return res.status(400).json({ message: "Field wajib diisi" });
     }
     if (!KATEGORI_VALID.includes(kategori)) {
       return res.status(400).json({ message: "Kategori tidak valid" });
     }
-    const id = await insertProduk({ nama_produk, deskripsi, harga, gambar: gambar || null, kategori });
+    const id = await insertProduk({
+      nama_produk,
+      deskripsi,
+      harga,
+      stok: parseInt(stok, 10) || 0,
+      gambar: gambar || null,
+      kategori,
+    });
     res.status(201).json({ message: "Produk ditambahkan", id });
   } catch (err) {
     res.status(500).json({ message: "Gagal tambah produk", error: err.message });
@@ -83,7 +90,7 @@ async function createProduk(req, res) {
 
 async function updateProduk(req, res) {
   try {
-    const { nama_produk, deskripsi, harga, gambar, kategori } = req.body;
+    const { nama_produk, deskripsi, harga, stok, gambar, kategori } = req.body;
     if (!nama_produk || !deskripsi || !harga || !kategori) {
       return res.status(400).json({ message: "Field wajib diisi" });
     }
@@ -91,7 +98,12 @@ async function updateProduk(req, res) {
       return res.status(400).json({ message: "Kategori tidak valid" });
     }
     const affected = await updateProdukModel(req.params.id, {
-      nama_produk, deskripsi, harga, gambar: gambar || null, kategori,
+      nama_produk,
+      deskripsi,
+      harga,
+      stok: parseInt(stok, 10) || 0,
+      gambar: gambar || null,
+      kategori,
     });
     if (!affected) return res.status(404).json({ message: "Produk tidak ditemukan" });
     res.status(200).json({ message: "Produk diperbarui" });
@@ -358,7 +370,6 @@ async function getLaporan(req, res) {
 }
 
 // ===== Upload gambar (produk/artikel) =====
-// Gabungan middleware upload + kirim hasil, dipakai langsung sebagai handler route
 const uploadGambar = [middlewareUploadGambar, sendHasilUpload];
 
 module.exports = {
