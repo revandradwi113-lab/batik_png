@@ -17,6 +17,8 @@ export default function ProductDetailPage() {
   const [toast, setToast] = useState("");
 
   const canUseCart = isLoggedIn && role === "pembeli";
+  const stok = Number(produk?.stok ?? 0);
+  const habis = stok <= 0;
 
   function handleAddCart() {
     if (!produk) return;
@@ -24,8 +26,14 @@ export default function ProductDetailPage() {
       navigate("/login", { state: { from: { pathname: `/produk/${id}` } } });
       return;
     }
-    addItem(produk, qty);
-    setToast(`${qty} item ditambahkan ke keranjang`);
+    if (habis) {
+      setToast("Stok produk ini habis");
+      setTimeout(() => setToast(""), 2500);
+      return;
+    }
+    const jumlah = Math.min(qty, stok);
+    addItem(produk, jumlah);
+    setToast(`${jumlah} item ditambahkan ke keranjang`);
     setTimeout(() => setToast(""), 2500);
   }
 
@@ -48,6 +56,7 @@ export default function ProductDetailPage() {
                     src={getImageUrl(produk.gambar)}
                     alt={produk.nama_produk}
                     className="fg-product-img"
+                    style={{ opacity: habis ? 0.55 : 1 }}
                   />
                 ) : (
                   <div className="fg-product-placeholder">{produk.nama_produk}</div>
@@ -60,7 +69,13 @@ export default function ProductDetailPage() {
               <h1 className="fg-display mt-2" style={{ fontSize: "1.85rem" }}>
                 {produk.nama_produk}
               </h1>
-              <p className="fg-card-harga fs-3 mt-2 mb-3">{formatHarga(produk.harga)}</p>
+              <p className="fg-card-harga fs-3 mt-2 mb-1">{formatHarga(produk.harga)}</p>
+              <p
+                className="small mb-3"
+                style={{ color: habis ? "#c0392b" : "#6b5e52" }}
+              >
+                {habis ? "Stok habis" : `Stok tersedia: ${stok}`}
+              </p>
               <p className="text-secondary" style={{ lineHeight: 1.85 }}>
                 {produk.deskripsi}
               </p>
@@ -72,24 +87,35 @@ export default function ProductDetailPage() {
                     <input
                       type="number"
                       min={1}
-                      max={99}
+                      max={Math.max(1, stok)}
                       className="form-control form-control-sm fg-qty-input"
                       value={qty}
-                      onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
+                      disabled={habis}
+                      onChange={(e) => {
+                        const v = Math.max(1, Number(e.target.value) || 1);
+                        setQty(stok > 0 ? Math.min(v, stok) : 1);
+                      }}
                     />
                   </div>
 
                   {canUseCart ? (
                     <>
-                      <button type="button" className="btn btn-fg-primary" onClick={handleAddCart}>
-                        + Keranjang
-                      </button>
-                      <Link
-                        to={`/akun/belanja?produk=${produk.id_produk}`}
-                        className="btn btn-fg-outline"
+                      <button
+                        type="button"
+                        className="btn btn-fg-primary"
+                        onClick={handleAddCart}
+                        disabled={habis}
                       >
-                        Beli langsung
-                      </Link>
+                        {habis ? "Stok habis" : "+ Keranjang"}
+                      </button>
+                      {!habis && (
+                        <Link
+                          to={`/akun/belanja?produk=${produk.id_produk}`}
+                          className="btn btn-fg-outline"
+                        >
+                          Beli langsung
+                        </Link>
+                      )}
                       <Link to="/akun/keranjang" className="btn btn-link text-decoration-none">
                         Lihat keranjang →
                       </Link>
