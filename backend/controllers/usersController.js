@@ -9,7 +9,11 @@ const {
   findPasswdHashById,
   updateUserProfile,
 } = require("../models/usersModel");
-const { findAllProduk, findProdukById } = require("../models/produkModel");
+const {
+  findAllProduk,
+  findProdukById,
+  kurangiStok,
+} = require("../models/produkModel");
 const { findAllArtikel, findArtikelById } = require("../models/artikelModel");
 const {
   insertPembelian,
@@ -102,7 +106,6 @@ async function updateMyProfile(req, res) {
       return res.status(404).json({ message: "User tidak ditemukan" });
     }
 
-    // Update data profil (field kosong tetap pakai data lama)
     await updateUserProfile(req.user.id, {
       nama_d: nama_d || current.nama_d,
       nama_b: nama_b || current.nama_b,
@@ -115,7 +118,6 @@ async function updateMyProfile(req, res) {
       foto: foto || current.foto,
     });
 
-    // Ganti password jika passwd_baru dikirim, wajib verifikasi passwd_lama dulu
     if (passwd_baru) {
       if (!passwd_lama) {
         return res.status(400).json({ message: "Password lama wajib diisi untuk ganti password" });
@@ -195,7 +197,6 @@ async function getDashboard(req, res) {
       safe(findPembelianByPembeliIdWithDetail(id), []),
     ]);
 
-    // Fallback hitung manual dari semua pesanan (jaga-jaga query SUM gagal / kolom beda)
     let totalBelanja = Number(total_belanja_dibayar) || 0;
     let belumBayar = Number(belum_dibayar) || 0;
     if (Array.isArray(allOrders) && allOrders.length > 0) {
@@ -213,7 +214,6 @@ async function getDashboard(req, res) {
           return sum + Number(o.harga || 0) * Math.max(1, Number(o.jumlah) || 1);
         }, 0);
       }
-      // selalu sinkronkan belum bayar dari data aktual bila query khusus 0
       const manualBelum = allOrders.filter((o) => isBelum(o.pembayaran)).length;
       if (belumBayar === 0 && manualBelum > 0) belumBayar = manualBelum;
     }
@@ -232,7 +232,7 @@ async function getDashboard(req, res) {
   }
 }
 
-// POST /api/pembeli/pembelian — buat pembelian baru, id_pembeli dari token
+// POST /api/pembeli/pembelian — buat pembelian baru + kurangi stok
 async function createPembelian(req, res) {
   try {
     const {
@@ -256,9 +256,16 @@ async function createPembelian(req, res) {
     }
 
     const qty = Math.max(1, Math.min(99, parseInt(jumlah, 10) || 1));
+    const stok = Number(produk.stok ?? 0);
+
+    if (stok < qty) {
+      return res.status(400).json({
+        message: stok <= 0 ? "Stok produk habis" : `Stok tidak cukup. Tersedia: ${stok}`,
+      });
+    }
 
     const id = await insertPembelian({
-      id_pembeli: req.user.id, // id_pembeli diambil dari JWT, bukan body
+      id_pembeli: req.user.id,
       id_produk,
       jumlah: qty,
       nama_pembeli: nama_pembeli || null,
@@ -269,8 +276,14 @@ async function createPembelian(req, res) {
       catatan: catatan || null,
     });
 
+    // Kurangi stok setelah pesanan berhasil
+    await kurangiStok(id_produk, qty);
+
     res.status(201).json({ message: "Pembelian berhasil dibuat", id });
   } catch (err) {
+    if (err.code === "STOK_HABIS") {
+      return res.status(400).json({ message: err.message });
+    }
     res.status(500).json({ message: "Gagal membuat pembelian", error: err.message });
   }
 }

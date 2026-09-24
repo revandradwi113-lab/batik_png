@@ -93,6 +93,30 @@ async function countProduk() {
   return count || 0;
 }
 
+// Kurangi stok produk (setelah checkout)
+async function kurangiStok(idProduk, jumlah = 1) {
+  const produk = await findProdukById(idProduk);
+  if (!produk) throw new Error("Produk tidak ditemukan");
+
+  const stokSekarang = Number(produk.stok ?? 0);
+  const qty = Math.max(1, Number(jumlah) || 1);
+
+  if (stokSekarang < qty) {
+    const err = new Error(`Stok tidak cukup. Tersedia: ${stokSekarang}`);
+    err.code = "STOK_HABIS";
+    throw err;
+  }
+
+  const { data: result, error } = await supabase
+    .from("produk")
+    .update({ stok: stokSekarang - qty })
+    .eq("id_produk", idProduk)
+    .select();
+
+  if (error) throw error;
+  return result.length > 0 ? 1 : 0;
+}
+
 module.exports = {
   findAllProduk,
   findProdukById,
@@ -100,4 +124,5 @@ module.exports = {
   updateProduk,
   deleteProduk,
   countProduk,
+  kurangiStok,
 };
