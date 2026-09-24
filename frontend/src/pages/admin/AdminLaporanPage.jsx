@@ -1,16 +1,17 @@
 /**
- * Laporan penjualan admin — filter tanggal, ringkasan, status, top produk, per bulan, cetak PDF.
+ * Laporan penjualan admin — filter, ringkasan, grafik, tabel, cetak PDF.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { adminApi } from "../../api";
 import { useAdminGuard } from "../../hooks";
 import LoadingBlock from "../../components/admin/LoadingBlock";
 import StatCard from "../../components/admin/StatCard";
+import { BarChart, DonutChart, HBarChart } from "../../components/admin/SimpleCharts";
 import { formatRupiah, formatTanggal, mediaUrl } from "../../utils";
 
 function bulanLabel(ym) {
   if (!ym) return "-";
-  const [y, m] = ym.split("-");
+  const [y, m] = String(ym).split("-");
   const nama = [
     "",
     "Jan",
@@ -66,6 +67,32 @@ export default function AdminLaporanPage() {
   function handleCetakPdf() {
     window.print();
   }
+
+  const chartBulan = useMemo(() => {
+    const rows = [...(data?.per_bulan || [])].reverse();
+    return rows.map((r) => ({
+      label: bulanLabel(r.bulan).split(" ")[0],
+      value: Number(r.pendapatan) || 0,
+    }));
+  }, [data]);
+
+  const chartStatus = useMemo(
+    () =>
+      (data?.by_status || []).map((r) => ({
+        label: r.status || "-",
+        value: Number(r.total) || 0,
+      })),
+    [data]
+  );
+
+  const chartProduk = useMemo(
+    () =>
+      (data?.top_produk || []).map((p) => ({
+        label: p.nama_produk,
+        value: Number(p.omzet) || 0,
+      })),
+    [data]
+  );
 
   if (loading && !data) return <LoadingBlock />;
   if (error && !data) return <div className="alert alert-danger">{error}</div>;
@@ -161,6 +188,33 @@ export default function AdminLaporanPage() {
         ))}
       </div>
 
+      {/* Grafik */}
+      <div className="row g-3 mb-4">
+        <div className="col-lg-7">
+          <div className="admin-panel h-100">
+            <h2 className="admin-section-title mb-1">Grafik omzet per bulan</h2>
+            <p className="text-secondary small mb-3">
+              Pendapatan pesanan status Selesai.
+            </p>
+            <BarChart data={chartBulan} height={220} />
+          </div>
+        </div>
+        <div className="col-lg-5">
+          <div className="admin-panel h-100">
+            <h2 className="admin-section-title mb-1">Grafik status pesanan</h2>
+            <p className="text-secondary small mb-3">Proporsi status.</p>
+            <DonutChart data={chartStatus} size={150} />
+          </div>
+        </div>
+      </div>
+
+      <div className="admin-panel mb-4">
+        <h2 className="admin-section-title mb-1">Grafik produk terlaris</h2>
+        <p className="text-secondary small mb-3">Berdasarkan omzet.</p>
+        <HBarChart data={chartProduk} />
+      </div>
+
+      {/* Tabel */}
       <div className="row g-3">
         <div className="col-lg-5">
           <div className="admin-panel h-100">
