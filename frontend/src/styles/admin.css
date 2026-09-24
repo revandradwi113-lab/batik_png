@@ -457,3 +457,86 @@
   border-radius: 4px;
   background: var(--fg-cream);
 }
+/* ===== Cetak PDF laporan ===== */
+.print-only {
+  display: none;
+}
+
+@media print {
+  .no-print,
+  .admin-sidebar,
+  .admin-sidebar-backdrop,
+  .admin-topbar,
+  .admin-menu-btn,
+  nav,
+  button,
+  .btn,
+  form {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .admin-shell,
+  .admin-main,
+  .admin-content,
+  main {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .admin-panel {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    page-break-inside: avoid;
+    margin-bottom: 16px !important;
+  }
+
+  .admin-stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .print-header h1 {
+    font-size: 20pt;
+    margin: 0 0 4px;
+  }
+
+  .print-header p {
+    margin: 0;
+    font-size: 10pt;
+    color: #333;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #ccc !important;
+    padding: 6px 8px !important;
+    font-size: 10pt !important;
+  }
+
+  a {
+    text-decoration: none !important;
+    color: #000 !important;
+  }
+
+  @page {
+    margin: 15mm;
+    size: A4 portrait;
+  }
+}

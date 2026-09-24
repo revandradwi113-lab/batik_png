@@ -1,5 +1,5 @@
 /**
- * Laporan penjualan admin — filter tanggal, ringkasan, status, top produk, per bulan.
+ * Laporan penjualan admin — filter tanggal, ringkasan, status, top produk, per bulan, cetak PDF.
  */
 import { useCallback, useEffect, useState } from "react";
 import { adminApi } from "../../api";
@@ -63,9 +63,18 @@ export default function AdminLaporanPage() {
     setTo("");
   }
 
+  function handleCetakPdf() {
+    window.print();
+  }
+
   if (loading && !data) return <LoadingBlock />;
   if (error && !data) return <div className="alert alert-danger">{error}</div>;
   if (!data) return null;
+
+  const periodeText =
+    from || to
+      ? `${from ? formatTanggal(from) : "awal"} – ${to ? formatTanggal(to) : "sekarang"}`
+      : "Semua waktu";
 
   const stats = [
     { label: "Total transaksi", value: data.total_transaksi, tone: "dark" },
@@ -83,17 +92,30 @@ export default function AdminLaporanPage() {
 
   return (
     <div>
-      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 no-print">
         <div>
           <h1 className="admin-section-title mb-1">Laporan Penjualan</h1>
           <p className="text-secondary small mb-0">
             Ringkasan transaksi, status, produk terlaris, dan omzet per bulan.
           </p>
         </div>
+        <button
+          type="button"
+          className="btn btn-dark rounded-0"
+          onClick={handleCetakPdf}
+          disabled={loading}
+        >
+          Cetak PDF
+        </button>
+      </div>
+
+      <div className="print-only print-header mb-3">
+        <h1>Laporan Penjualan</h1>
+        <p>Periode: {periodeText}</p>
       </div>
 
       <form
-        className="admin-panel mb-4"
+        className="admin-panel mb-4 no-print"
         onSubmit={onFilter}
         style={{ padding: "16px 18px" }}
       >
@@ -131,7 +153,7 @@ export default function AdminLaporanPage() {
         </div>
       </form>
 
-      {loading && <p className="text-secondary small">Memuat ulang...</p>}
+      {loading && <p className="text-secondary small no-print">Memuat ulang...</p>}
 
       <div className="admin-stats-grid mb-4">
         {stats.map((s) => (
@@ -210,7 +232,7 @@ export default function AdminLaporanPage() {
             <table className="table admin-table mb-0">
               <thead>
                 <tr>
-                  <th style={{ width: 56 }}></th>
+                  <th className="no-print" style={{ width: 56 }}></th>
                   <th>Produk</th>
                   <th className="text-end">Harga</th>
                   <th className="text-end">Terjual</th>
@@ -220,7 +242,7 @@ export default function AdminLaporanPage() {
               <tbody>
                 {data.top_produk.map((p) => (
                   <tr key={p.id_produk}>
-                    <td>
+                    <td className="no-print">
                       {p.gambar ? (
                         <img
                           src={mediaUrl(p.gambar)}
@@ -252,12 +274,7 @@ export default function AdminLaporanPage() {
         )}
       </div>
 
-      <p className="text-secondary small mt-3 mb-0">
-        Periode:{" "}
-        {from || to
-          ? `${from ? formatTanggal(from) : "awal"} – ${to ? formatTanggal(to) : "sekarang"}`
-          : "Semua waktu"}
-      </p>
+      <p className="text-secondary small mt-3 mb-0">Periode: {periodeText}</p>
     </div>
   );
 }
