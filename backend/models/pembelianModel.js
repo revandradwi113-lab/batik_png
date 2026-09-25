@@ -314,6 +314,7 @@ async function getLaporanSummary(fromDate, toDate) {
   let pendapatan_dibayar = 0;
   const byStatus = {};
   const produkMap = {};
+  const bulanMap = {};
 
   data.forEach((row) => {
     // row.status adalah value asli (case-sensitive), dipakai apa adanya untuk perbandingan exact
@@ -327,6 +328,16 @@ async function getLaporanSummary(fromDate, toDate) {
 
     if (status === STATUS_SELESAI) {
       total_pendapatan += subtotal;
+
+      // Kelompokkan omzet transaksi Selesai per bulan (format kunci: YYYY-MM)
+      const bulanKey = (row.created_at || "").slice(0, 7);
+      if (bulanKey) {
+        if (!bulanMap[bulanKey]) {
+          bulanMap[bulanKey] = { bulan: bulanKey, pendapatan: 0, total_transaksi: 0 };
+        }
+        bulanMap[bulanKey].pendapatan += subtotal;
+        bulanMap[bulanKey].total_transaksi += 1;
+      }
     }
 
     if (["sudah bayar", "dibayar", "lunas"].includes(pembayaran) || pembayaran.includes("sudah")) {
@@ -354,13 +365,15 @@ async function getLaporanSummary(fromDate, toDate) {
     .sort((a, b) => b.terjual - a.terjual)
     .slice(0, 10);
 
+  const per_bulan = Object.values(bulanMap).sort((a, b) => a.bulan.localeCompare(b.bulan));
+
   return {
     total_transaksi,
     total_pendapatan,
     pendapatan_dibayar,
     by_status: Object.entries(byStatus).map(([status, total]) => ({ status, total })),
     top_produk,
-    per_bulan: [], // bisa ditambah nanti
+    per_bulan,
   };
 }
 
