@@ -3,7 +3,13 @@
         "frontend": {
             "root": "frontend",
             "framework": "vite",
-            "installCommand": "npm install"
+            "installCommand": "npm install",
+            "rewrites": [
+                {
+                    "source": "/(.*)",
+                    "destination": "/index.html"
+                }
+            ]
         },
         "backend": {
             "root": "backend",
